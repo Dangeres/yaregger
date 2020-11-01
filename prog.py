@@ -3,6 +3,7 @@ import base64
 import time
 from bs4 import BeautifulSoup
 import string
+import re
 import random
 import json
 
@@ -16,15 +17,22 @@ csrf = ''
 ses = req.session()
 
 ses.headers.update({
-    'Accept': 'application/json, text/javascript, */*; q=0.01',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
     'Host': 'passport.yandex.ru',
     'Origin': 'https://passport.yandex.ru',
     'Referer': 'https://passport.yandex.ru/registration/',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'same-origin',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
+    # 'Sec-Fetch-Dest': 'empty',
+    # 'Sec-Fetch-Mode': 'cors',
+    # 'Sec-Fetch-Site': 'same-origin',
+
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36',
     'X-Requested-With': 'XMLHttpRequest'
 })
 
@@ -36,6 +44,15 @@ my_pass += "".join(random.choice(string.digits) for x in range(4))
 
 debug = True
 
+def regexp(text, pattern):
+    if not text:
+        return None
+
+    found = re.search(pattern, text)
+
+    return found.group(1) if found else None
+
+
 if debug:
     while True:
         get_first = ses.get('https://passport.yandex.ru/registration/')
@@ -43,7 +60,8 @@ if debug:
         soup = BeautifulSoup(get_first.text, 'html.parser')
 
         track = soup.find('input', attrs= {'name': 'track_id'})['value']
-        csrf = soup.find('body')['data-csrf']
+        csrf = regexp(get_first.text, r'"csrf":"([\w\W]+:[\d]+)"')
+        # csrf = soup.find('body')['csrf']
 
         captcha = ses.post('https://passport.yandex.ru/registration-validations/textcaptcha', data = {
             'track_id': track,
